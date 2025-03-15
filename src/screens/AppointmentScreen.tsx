@@ -81,53 +81,61 @@ export const AppointmentsScreen = () => {
   return (
 <View style={styles.container}>
       <Text style={styles.title}>Agendamentos</Text>
-      <FlatList
-        data={appointments as any}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.infoContainer}>
-              <Text style={styles.cliente}>{item.customer.name}</Text>
-              <Text style={styles.horario}>{formatDateTime(item.appointment_date, item.appointment_time)}</Text>
-              <Text style={styles.servicos}>Serviço: {item.service.name}</Text>
-              <Text style={styles.valor}>Valor: R$ {item.service.price}</Text>
-              <Text style={[styles.status, item.status === 'concluído' ? styles.concluido : styles.pendente]}>
-                Status: {AppointmentStatus[item.status as keyof typeof AppointmentStatus]}
-              </Text>
+      {appointments.length < 0 ? (
+        <Text style={styles.notfound}>Ainda não há agendamentos para hoje.</Text>
+      ): (
+        <FlatList
+          data={appointments as any}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.infoContainer}>
+                <Text style={styles.cliente}>{item.customer.name}</Text>
+                <Text style={styles.horario}>{formatDateTime(item.appointment_date, item.appointment_time)}</Text>
+                {/* <Text style={styles.servicos}>Serviços: 
+                  {item.services.map((servico: any) => 
+                    <Text>{servico.name} - </Text>
+                  )}
+                </Text> */}
+                <Text style={styles.valor}>Valor: R$ {item.amount}</Text>
+                <Text style={[styles.status, item.status === 'concluído' ? styles.concluido : styles.pendente]}>
+                  Status: {AppointmentStatus[item.status as keyof typeof AppointmentStatus]}
+                </Text>
+              </View>
+
+              <View style={styles.buttonsContainer}>
+                {item.status === 'pending' && (
+                  <>
+                    <TouchableOpacity 
+                      style={[styles.button, styles.concluirButton]} 
+                      onPress={() => handleConcluir(item.id)}
+                    >
+                      <Text style={styles.buttonText}>Concluir</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.button, styles.cancelarButton]} 
+                      onPress={() => handleCancelar(item.id)}
+                    >
+                      <Text style={styles.buttonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                <TouchableOpacity 
+                  style={[styles.button, styles.detalhesButton]} 
+                  onPress={() => handleDetalhes(item.id)}
+                >
+                  <Text style={styles.buttonText}>Detalhes</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <View style={styles.buttonsContainer}>
-              {item.status === 'pending' && (
-                <>
-                  <TouchableOpacity 
-                    style={[styles.button, styles.concluirButton]} 
-                    onPress={() => handleConcluir(item.id)}
-                  >
-                    <Text style={styles.buttonText}>Concluir</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.button, styles.cancelarButton]} 
-                    onPress={() => handleCancelar(item.id)}
-                  >
-                    <Text style={styles.buttonText}>Cancelar</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <TouchableOpacity 
-                style={[styles.button, styles.detalhesButton]} 
-                onPress={() => handleDetalhes(item.id)}
-              >
-                <Text style={styles.buttonText}>Detalhes</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      />
+          )}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      )}
     </View>
   );
 };
@@ -221,4 +229,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  notfound: {
+    color: 'gray',
+    margin: 'auto',
+    fontSize: 18
+  }
 });

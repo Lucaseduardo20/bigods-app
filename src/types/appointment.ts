@@ -1,5 +1,5 @@
 export type AppointmentContextType = {
-    appointments: Appointment;
+    appointments: Appointment[];
     setAppointments: () => void;
     getAppointmentsApi: (token: string) => any
 

@@ -13,8 +13,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { AxiosResponse } from 'axios';
 
 export const LoginScreen = ({ navigation }: any) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@admin.com');
+  const [password, setPassword] = useState('123123');
   const [loginStatus, setLoginStatus] = useState<number>();
   const [loading, setLoading] = useState(false);
   const { login, isAuthenticated, setIsAuthenticated } = useAuth();
