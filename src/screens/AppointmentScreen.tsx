@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl  } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal  } from 'react-native';
 import { useAppointments } from '../contexts/AppointmentContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
-import { AppointmentStatus } from '../types/appointment';
+import { Appointment, AppointmentPaymentMethod, AppointmentStatus } from '../types/appointment';
+import { ModalContainer } from '../components/utils/ModalContainer';
+import { doneAppointmentService } from '../services/appointment';
 
 const mockAgendamentos = [
   { 
@@ -35,16 +37,15 @@ const mockAgendamentos = [
 export const AppointmentsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState() as any;
+  const [doneModal, setDoneModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [doneAppointment, setDoneAppointment] = useState({} as Appointment)
   const [refreshing, setRefreshing] = useState(false);
   const {appointments} = useAppointments()
 
   const { getAppointmentsApi } = useAppointments();
   const handleCancelar = (id: string) => {
     console.log(`Cancelando agendamento com id: ${id}`);
-  };
-
-  const handleConcluir = (id: string) => {
-    console.log(`Concluindo agendamento com id: ${id}`);
   };
 
   const handleDetalhes = (id: string) => {
@@ -55,6 +56,17 @@ export const AppointmentsScreen = () => {
     const appointmentDate = new Date(`${date}T${time}`);
     return format(appointmentDate, "dd/MM/yyyy 'às' HH:mm");
   };
+  const paymentMethods: Record<string, AppointmentPaymentMethod> = {
+    Pix: AppointmentPaymentMethod.pix,
+    'Cartão de Crédito': AppointmentPaymentMethod.credit_card,
+    'Cartão de Débito': AppointmentPaymentMethod.debit,
+    Dinheiro: AppointmentPaymentMethod.money,
+  };
+
+  const openDoneModal = (appointment: Appointment) => {
+    setDoneModal(true);
+    setDoneAppointment(appointment);
+  }
 
   const fetchAppointments = async () => {
     const token: string = await AsyncStorage.getItem('token') as string;
@@ -67,6 +79,21 @@ export const AppointmentsScreen = () => {
       setRefreshing(false);
     }
   };
+
+  const setMethod = async (method: string) => {
+      setPaymentMethod(paymentMethods[method]);
+      const token = await AsyncStorage.getItem('token');
+      await doneAppointmentService({
+        token: token,
+        id: doneAppointment.id,
+        payment_method: paymentMethods[method]
+      }).then((res: any) => {
+        alert(res.data.message);
+        onRefresh();
+      }).catch((err) => {
+        alert('Erro ao concluir atendimento. Entre em contato com o administrador')
+      })
+  }
 
   useEffect(() => {
     fetchAppointments();
@@ -81,7 +108,7 @@ export const AppointmentsScreen = () => {
   return (
 <View style={styles.container}>
       <Text style={styles.title}>Agendamentos</Text>
-      {appointments.length < 0 ? (
+      {appointments.length === 0 ? (
         <Text style={styles.notfound}>Ainda não há agendamentos para hoje.</Text>
       ): (
         <FlatList
@@ -98,7 +125,7 @@ export const AppointmentsScreen = () => {
                   )}
                 </Text> */}
                 <Text style={styles.valor}>Valor: R$ {item.amount}</Text>
-                <Text style={[styles.status, item.status === 'concluído' ? styles.concluido : styles.pendente]}>
+                <Text style={[styles.status, item.status === 'done' ? styles.concluido : styles.pendente]}>
                   Status: {AppointmentStatus[item.status as keyof typeof AppointmentStatus]}
                 </Text>
               </View>
@@ -108,7 +135,7 @@ export const AppointmentsScreen = () => {
                   <>
                     <TouchableOpacity 
                       style={[styles.button, styles.concluirButton]} 
-                      onPress={() => handleConcluir(item.id)}
+                      onPress={() => openDoneModal(item)}
                     >
                       <Text style={styles.buttonText}>Concluir</Text>
                     </TouchableOpacity>
@@ -136,6 +163,23 @@ export const AppointmentsScreen = () => {
           }
         />
       )}
+      <ModalContainer visible={doneModal} setVisible={setDoneModal} >
+      <View style={styles.doneModal}>
+        <View style={{ width: '95%', display: 'flex', alignItems: 'flex-end' }}>
+          <TouchableOpacity onPress={() => setDoneModal(false)}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>X</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.doneModalTitle}>Qual foi a forma de pagamento utilizada?</Text>
+        <View style={styles.paymentOptionsContainer}>
+        {Object.keys(paymentMethods).map((method) => (
+          <TouchableOpacity onPress={() => setMethod(method as keyof typeof paymentMethods)} key={method} style={styles.paymentButton}>
+            <Text style={styles.paymentButtonText}>{method}</Text>
+          </TouchableOpacity>
+        ))}
+        </View>
+      </View>
+      </ModalContainer>
     </View>
   );
 };
@@ -233,5 +277,41 @@ const styles = StyleSheet.create({
     color: 'gray',
     margin: 'auto',
     fontSize: 18
-  }
+  },
+  doneModal: {
+    width: 300,
+    height: 300,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    display: 'flex',
+    alignItems: 'center',
+  },
+
+  doneModalTitle: {
+    color: 'black',
+    fontSize: 18,
+    textAlign: 'center'
+  },
+  paymentOptionsContainer: {
+    marginTop: 15,
+    width: '100%',
+    alignItems: 'center',
+  },
+  
+  paymentButton: {
+    backgroundColor: '#003366',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginVertical: 5,
+    width: '80%',
+    alignItems: 'center',
+  },
+  
+  paymentButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
 });

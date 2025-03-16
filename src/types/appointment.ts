@@ -6,6 +6,7 @@ export type AppointmentContextType = {
 }
 
 export type Appointment = {
+    id: number,
     customer: Customer,
     date: string,
     time: string,
@@ -20,5 +21,24 @@ export type Customer = {
 export enum AppointmentStatus {
     pending = 'Pendente',
     scheduled = 'Agendado',
-    canceled = 'Cancelado'
+    canceled = 'Cancelado',
+    done = 'Concluído'
+}
+
+export enum AppointmentPaymentMethod {
+    pix = 'pix',
+    credit_card = 'credit_card',
+    debit = 'debit_card',
+    money = 'money'
+}
+
+export interface DoneAppointmentType {
+    token: string | null,
+    id: number,
+    payment_method: AppointmentPaymentMethod
+}
+
+export interface CancelAppointmentType {
+    id: number,
+    reason: string
 }
