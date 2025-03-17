@@ -1,32 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { previewService } from '../services/user';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const mockAgendamentos = [
   { id: '1', cliente: 'João', horario: '10:00', servico: 'Corte de Cabelo' },
   { id: '2', cliente: 'Maria', horario: '11:00', servico: 'Barba' },
 ];
 
+
 export const HomeScreen = () => {
+  const [nextAppointments, setNextAppointments] = useState([]);
+  const [appointmentsCount, setAppointmentsCount] = useState();
+  const [commission, setCommission] = useState();
+  
+  const getPreview = async () => {
+    const token = await AsyncStorage.getItem('token') as string;
+    return await previewService(token).then((res) => {
+      setNextAppointments(res.next_appointments);
+      setCommission(res.commission);
+      setAppointmentsCount(res.total_week_appointments);
+    }).catch((err: any) => {
+      console.log(err);
+      alert(err);
+    });
+  }
+
+useEffect(() => {
+  getPreview();
+}, [])
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bem-vindo(a) de volta!</Text>
-      <Text style={styles.subtitle}>Aqui estão seus próximos agendamentos:</Text>
+      <Text style={styles.title}>Bem-vindo de volta!</Text>
+      {nextAppointments.length > 0 ? (
+        <Text style={styles.subtitle}>Aqui estão seus próximos agendamentos:</Text>
+      ): (
+        <Text style={styles.subtitle}>Não há agendamentos hoje.</Text>
+      )}
 
       <FlatList
-        data={mockAgendamentos}
+        data={nextAppointments as any}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.appointmentItem}>
             <Text style={styles.appointmentText}>
-              {item.cliente} - {item.servico} às {item.horario}
+              {item.customer.name}
+            </Text>
+            <Text style={styles.appointmentText}>
+              {item.appointment_time}
             </Text>
           </View>
         )}
       />
 
       <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>Saldo de Comissões: R$ 1.200,00</Text>
-        <Text style={styles.summaryText}>Total de Agendamentos: 15 esta semana</Text>
+        <Text style={styles.summaryText}>Saldo de Comissões: {commission}</Text>
+        <Text style={styles.summaryText}>Total de Agendamentos: {appointmentsCount}</Text>
       </View>
     </View>
   );

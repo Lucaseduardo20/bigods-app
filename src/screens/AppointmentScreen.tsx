@@ -52,9 +52,8 @@ export const AppointmentsScreen = () => {
     console.log(`Ver detalhes do agendamento com id: ${id}`);
   };
 
-  const formatDateTime = (date: string, time: string) => {
-    const appointmentDate = new Date(`${date}T${time}`);
-    return format(appointmentDate, "dd/MM/yyyy 'às' HH:mm");
+  const formatDate = (date: string) => {
+    return format(new Date(date), "dd/MM/yyyy");
   };
   const paymentMethods: Record<string, AppointmentPaymentMethod> = {
     Pix: AppointmentPaymentMethod.pix,
@@ -88,10 +87,11 @@ export const AppointmentsScreen = () => {
         id: doneAppointment.id,
         payment_method: paymentMethods[method]
       }).then((res: any) => {
+        setDoneModal(false);
         alert(res.data.message);
         onRefresh();
       }).catch((err) => {
-        alert('Erro ao concluir atendimento. Entre em contato com o administrador')
+        alert('Erro ao concluir atendimento. Entre em contato com o administrador do sistema.')
       })
   }
 
@@ -118,12 +118,7 @@ export const AppointmentsScreen = () => {
             <View style={styles.card}>
               <View style={styles.infoContainer}>
                 <Text style={styles.cliente}>{item.customer.name}</Text>
-                <Text style={styles.horario}>{formatDateTime(item.appointment_date, item.appointment_time)}</Text>
-                {/* <Text style={styles.servicos}>Serviços: 
-                  {item.services.map((servico: any) => 
-                    <Text>{servico.name} - </Text>
-                  )}
-                </Text> */}
+                <Text style={styles.horario}>{formatDate(item.appointment_date) + ' às ' + item.appointment_time}</Text>
                 <Text style={styles.valor}>Valor: R$ {item.amount}</Text>
                 <Text style={[styles.status, item.status === 'done' ? styles.concluido : styles.pendente]}>
                   Status: {AppointmentStatus[item.status as keyof typeof AppointmentStatus]}
